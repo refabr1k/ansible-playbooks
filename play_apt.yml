@@ -33,6 +33,8 @@
       - dmg2img
       - lynis
       - php
+      # for wpscan
+      - ruby-all-dev
   tasks:
     - name: install deb-utils packages
       apt:
@@ -139,7 +141,6 @@
       - steghide
       - zbar-tools 
       - beef
-     # - gobuster change to go install
       - volatility
       - binwalk
   tasks:
@@ -189,18 +190,76 @@
   tags:
     - pip3-sec
 
-- name: install gem packages
+- name: install wpscan
   hosts: localhost
   connection: local
   become: true
   tasks:
     - name: install wpscan
-      gem:
-        name: wpscan
-        state: latest
+      shell: '/bin/bash -lc "/usr/bin/gem install wpscan"'
+  
   tags:
-    - gems 
-    
+    - wpscan 
+
+- name: dirsearch
+  hosts: localhost
+  connection: local
+  become: true
+  tasks:
+    - block:
+      - name: 'dirsearch: clone repo'
+        git:
+          clone: yes
+          dest: /opt/dirsearch
+          repo: https://github.com/maurosoria/dirsearch
+      - name: 'dirsearch: create sym link'
+        shell: 'sudo ln -s /opt/dirsearch/dirsearch.py /usr/bin/dirsearch'
+  tags:
+    - dirsearch
+
+- name: gobuster
+  hosts: localhost
+  connection: local
+  become: true
+  tasks:
+    - block:
+      - name: 'gobuster : clone repository'
+        git:
+          accept_hostkey: yes
+          clone: yes
+          depth: 1
+          dest: /tmp/gobuster
+          force: yes
+          repo: https://github.com/OJ/gobuster.git
+
+      - name: 'gobuster : exec go get'
+        shell: '/bin/bash -lc "/usr/bin/go get"'
+        args:
+          chdir: /tmp/gobuster
+
+      - name: 'gobuster : exec go build'
+        shell: '/bin/bash -lc "/usr/bin/go build"'
+        args:
+          chdir: /tmp/gobuster
+
+      - name: 'gobuster : install'
+        copy:
+          dest: /usr/local/bin/gobuster
+          mode: 0775
+          remote_src: yes
+          src: /tmp/gobuster/gobuster
+
+      - name: 'gobuster : cleanup build fragments'
+        file:
+          dest: '{{ item }}'
+          state: absent
+        with_items:
+          - /tmp/gobuster
+          - /root/.go/bin/gobuster
+
+  tags:
+        - gobuster
+
 - name: wordlists
   hosts: localhost
   connection: local
