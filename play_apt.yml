@@ -2,6 +2,7 @@
   hosts: localhost
   connection: local
   become: true
+  ignore_errors: yes
   vars:
     packages:
       - unattended-upgrades
@@ -15,11 +16,11 @@
       - rdesktop
       - tmux
       - vim
-     # - atom
+      - atom
       - tree
       - golang-go
       - python
-     # - python-pip
+      - python-pip
       - python3
       - python3-pip
       - nmap
@@ -33,8 +34,10 @@
       - dmg2img
       - lynis
       - php
+      - terminator
       # for wpscan
       - ruby-all-dev
+      - python3-virtualenv
   tasks:
     - name: install deb-utils packages
       apt:
@@ -44,27 +47,27 @@
   tags:
     - deb-utils
 
-- name: sublime-text
-  hosts: localhost
-  connection: local
-  become: true
-  tasks:
-    - name: add pgp key
-      apt_key:
-        url: https://download.sublimetext.com/sublimehq-pub.gpg
-        state: present
-    - name: add repository
-      apt_repository:
-        repo: 'deb https://download.sublimetext.com/ apt/stable/'
-        state: present
-        filename: sublime-text.list
-        update_cache: yes
-    - name: install sublime-text
-      apt:
-        name: sublime-text
-        state: present
-  tags:
-    - sublime-text
+# - name: sublime-text
+#   hosts: localhost
+#   connection: local
+#   become: true
+#   tasks:
+#     - name: add pgp key
+#       apt_key:
+#         url: https://download.sublimetext.com/sublimehq-pub.gpg
+#         state: present
+#     - name: add repository
+#       apt_repository:
+#         repo: 'deb https://download.sublimetext.com/ apt/stable/'
+#         state: present
+#         filename: sublime-text.list
+#         update_cache: yes
+#     - name: install sublime-text
+#       apt:
+#         name: sublime-text
+#         state: present
+#   tags:
+#     - sublime-text
 
 - name: kismet
   hosts: localhost
@@ -77,7 +80,7 @@
         state: present
     - name: add repository
       apt_repository:
-        repo: 'deb https://www.kismetwireless.net/repos/apt/git/disco disco main' 
+        repo: 'deb https://www.kismetwireless.net/repos/apt/git/focal focal main' 
         state: present
         filename: kismet
         update_cache: yes
@@ -101,6 +104,7 @@
   hosts: localhost
   connection: local
   become: true
+  ignore_errors: yes
   vars:
     packages:
       - nbtscan
@@ -111,10 +115,10 @@
       - ldap-utils
       - samba
       - cifs-utils
-      - python-scapy
+     # - python-scapy
       - python3-scapy
       - scanssh
-      - zenmap
+     # - zenmap
       - sqlmap
       - dnsrecon
       - ncrack
@@ -141,7 +145,7 @@
       - steghide
       - zbar-tools 
       - beef
-      - volatility
+      # - volatility
       - binwalk
   tasks:
     - name: install deb-sec packages
@@ -152,47 +156,84 @@
   tags:
     - deb-sec
 
-- name: pip-sec
-  hosts: localhost
-  connection: local
-  become: true
-  vars:
-    packages:
-      - impacket
-      - dirhunt
-      - crackmapexec
-  tasks:
-    - name: install pip-sec packages
-      pip:
-        name: "{{ item }}"
-        state: latest
-        extra_args: --upgrade
-      loop: "{{ packages }}"
-  tags:
-    - pip-sec
+# - name: pip-sec
+#   hosts: localhost
+#   connection: local
+#   become: true
+#   vars:
+#     packages:
+#       - impacket
+#       - dirhunt
+#       - crackmapexec
+#   tasks:
+#     - name: install pip-sec packages
+#       pip:
+#         name: "{{ item }}"
+#         state: latest
+#         extra_args: --upgrade
+#       loop: "{{ packages }}"
+#   tags:
+#     - pip-sec
 
-- name: pip3-sec
+# - name: pip3-sec
+#   hosts: localhost
+#   connection: local
+#   become: true
+#   vars:
+#     packages:
+#       - pshtt
+#       - stegcracker
+#   tasks:
+#     - name: install pip3-sec packages
+#       pip:
+#         name: "{{ item }}"
+#         executable: pip3
+#         state: latest
+#         extra_args: --upgrade
+#       loop: "{{ packages }}"
+#   tags:
+#     - pip3-sec
+
+- name: impacket 0.9.21
   hosts: localhost
+  ignore_errors: yes
   connection: local
   become: true
-  vars:
-    packages:
-      - pshtt
-      - stegcracker
   tasks:
-    - name: install pip3-sec packages
-      pip:
-        name: "{{ item }}"
-        executable: pip3
-        state: latest
-        extra_args: --upgrade
-      loop: "{{ packages }}"
+    - block:
+      - name: create impacket directory
+        file:
+          path: /opt/impacket
+          state: directory
+
+      - name: download impacket 0.9.21 release
+        get_url:
+          url: "{{ item.src }}"
+          dest: "{{ item.dest }}"
+        with_items:
+          - { src: 'https://github.com/SecureAuthCorp/impacket/releases/download/impacket_0_9_21/impacket-0.9.21.tar.gz',
+              dest: /opt/impacket }
+
+      - name: untar impacket gz
+        shell: '/bin/bash -lc "tar xvf /opt/impacket/impacket-0.9.21.tar.gz -C /opt/impacket"'
+
+      - name: install impacket
+        shell: '/bin/bash -lc "cd /opt/impacket/impacket-0.9.21 && pip3 install ."'
+
+      - name: cleanup install file
+        file:
+          dest: '{{ item }}'
+          state: absent
+        with_items:
+          - /opt/impacket/impacket-0.9.21.tar.gz
+
   tags:
-    - pip3-sec
+    - impacket
 
 - name: install wpscan
   hosts: localhost
   connection: local
+  ignore_errors: yes
   become: true
   tasks:
     - name: install wpscan
@@ -203,6 +244,7 @@
 
 - name: dirsearch
   hosts: localhost
+  ignore_errors: yes
   connection: local
   become: true
   tasks:
@@ -213,12 +255,13 @@
           dest: /opt/dirsearch
           repo: https://github.com/maurosoria/dirsearch
       - name: 'dirsearch: create sym link'
-        shell: 'sudo ln -s /opt/dirsearch/dirsearch.py /usr/bin/dirsearch'
+        shell: 'sudo ln -s /opt/dirsearch/dirsearch.py /usr/local/bin/dirsearch'
   tags:
     - dirsearch
 
 - name: gobuster
   hosts: localhost
+  ignore_errors: yes
   connection: local
   become: true
   tasks:
@@ -258,10 +301,35 @@
           - /root/.go/bin/gobuster
 
   tags:
-        - gobuster
+    - gobuster
+
+- name: responder
+  hosts: localhost
+  ignore_errors: yes
+  connection: local
+  become: true
+  tasks:
+    - block:
+      - name: 'responder : clone repository'
+        git:
+          accept_hostkey: yes
+          clone: yes
+          depth: 1
+          dest: /opt/responder
+          force: yes
+          repo: https://github.com/SpiderLabs/Responder.git
+      - name: 'responder : add startup script'
+        template:
+          dest: /usr/local/bin/responder
+          mode: 0755
+          src: template/responder.sh
+
+  tags:
+    - responder
 
 - name: wordlists
   hosts: localhost
+  ignore_errors: yes
   connection: local
   become: true
   tasks:
