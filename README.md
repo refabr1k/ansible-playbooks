@@ -39,7 +39,7 @@ $ sudo ansible-playbook play_apt.yml --skip-tags "deb-sec,pip-sec"
 Run playbook and all install tools to localhost:
 
 ```bash
-$ sudo ansible-playbook play_apt.yml --tags "deb-utils,sublime-text,kismet,deb-sec,impacket,wpscan,dirsearch,gobuster,responder,wordlists"
+$ sudo ansible-playbook play_apt.yml --tags "deb-utils,kismet,deb-sec,impacket,wpscan,dirsearch,gobuster,responder,wordlists"
 ```
 
 ### Whats included?
